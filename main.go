@@ -3,7 +3,10 @@ package main
 import (
 	"fmt"
 	"net/url"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"go_task/network"
@@ -11,7 +14,7 @@ import (
 
 type Result struct {
 	URL        string
-	Status     string 
+	Status     string
 	StatusCode int
 	Error      error
 }
@@ -53,7 +56,7 @@ func checkURL(rawURL string, timeout time.Duration) Result {
 		}
 		connErr = err
 
-	} else { 
+	} else {
 		conn, err := network.GetHTTPSConnection(host, port, timeout)
 		if err == nil {
 			statusCode, err = network.SendGET(conn, host, path)
@@ -152,6 +155,10 @@ func main() {
 	fmt.Println("Starting HTTP Health Checker")
 	fmt.Printf("Checking %d URLs every %v (timeout: %v)\n",
 		len(urls), interval, timeout)
+	fmt.Println("Press Ctrl+C to stop.")
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	results := runHealthChecks(urls, timeout)
 	printSummary(results)
@@ -159,11 +166,19 @@ func main() {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		fmt.Printf("\n[%s] Running health checks...\n",
-			time.Now().Format("15:04:05"))
+	for {
+		select {
+		case <-ticker.C:
+			fmt.Printf("\n[%s] Running health checks...\n",
+				time.Now().Format("15:04:05"))
 
-		results = runHealthChecks(urls, timeout)
-		printSummary(results)
+			results = runHealthChecks(urls, timeout)
+			printSummary(results)
+
+		case sig := <-quit:
+			fmt.Printf("\n\nReceived %v signal. Shutting down gracefully...\n", sig)
+			fmt.Println("Health checker stopped.")
+			os.Exit(0)
+		}
 	}
-}
+} 
