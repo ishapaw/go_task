@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/url"
@@ -26,33 +27,53 @@ func main() {
 
 	for _, rawURL := range urls {
 
-		fmt.Print("Checking")
-	
+		fmt.Print("Checking:", rawURL)
 
-	parsedURL, err := url.Parse(rawURL)
-	if err != nil {
-		fmt.Println("parse error ", err)
-	}
-
-	host := parsedURL.Host
-
-	fmt.Println(host)
-
-	if parsedURL.Port() == "" {
-		if parsedURL.Scheme == "https" {
-			host += ":443"
-		} else {
-			host += ":80"
+		u, err := url.Parse(rawURL)
+		if err != nil {
+			fmt.Println("Invalid URL:", err)
+			continue
 		}
+
+		host := u.Hostname()
+		scheme := u.Scheme
+
+		if scheme == "http" {
+
+			conn, err := net.DialTimeout("tcp", host+":80", timeout)
+			if err != nil {
+				fmt.Println("HTTP TCP connection failed:", err)
+				return
+			}
+
+			fmt.Println("HTTP TCP connection successful")
+			conn.Close()
+
+		} else if scheme == "https" {
+
+			conn, err := net.DialTimeout("tcp", host+":443", timeout)
+			if err != nil {
+				fmt.Println("HTTPS TCP connection failed:", err)
+				return
+			}
+
+			tlsConn := tls.Client(conn, &tls.Config{
+				ServerName: host,
+			})
+
+			err = tlsConn.Handshake()
+			if err != nil {
+				fmt.Println("TLS handshake failed:", err)
+				conn.Close()
+				return
+			}
+
+			fmt.Println("HTTPS TLS connection successful")
+			tlsConn.Close()
+		} else {
+			fmt.Println("Unsupported scheme")
+		}
+
 	}
 
-	conn, err := net.Dial("tcp", host)
-	if err != nil {
-		fmt.Println("connection error:", err)
-		return
-	}
-
-	defer conn.Close()
-
-	fmt.Println("Connected to", conn.RemoteAddr())
 }
