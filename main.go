@@ -10,7 +10,7 @@ import (
 
 func main() {
 	urls := []string{
-		"https://google.com",
+		"http://10.255.255.1",
 		"https://github.com",
 		"https://stackoverflow.com",
 		"https://www.wikipedia.org",
@@ -39,12 +39,13 @@ func main() {
 		}
 
 		var connErr error
+		var statusCode int
 
 		if u.Scheme == "http" {
 			conn, err := network.GetHTTPConnection(host, timeout)
 
 			if err == nil {
-				network.SendGET(conn, host, path)
+				statusCode, err = network.SendGET(conn, host, path)
 				conn.Close()
 			}
 
@@ -55,7 +56,7 @@ func main() {
 			conn, err := network.GetHTTPSConnection(host, timeout)
 
 			if err == nil {
-				network.SendGET(conn, host, path)
+				statusCode, err = network.SendGET(conn, host, path)
 				conn.Close()
 			}
 
@@ -63,9 +64,14 @@ func main() {
 		}
 
 		if connErr != nil {
-			fmt.Println("Connection failed:", connErr)
+			fmt.Println("DOWN (connection error):", connErr)
+			continue
 		}
 
-		fmt.Println()
+		if statusCode < 500 {
+			fmt.Println("UP - status:", statusCode)
+		} else {
+			fmt.Println("DOWN - status:", statusCode)
+		}
 	}
 }
