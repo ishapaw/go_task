@@ -38,11 +38,13 @@ func main() {
 			path = "/"
 		}
 
+		port := u.Port()
+
 		var connErr error
 		var statusCode int
 
 		if u.Scheme == "http" {
-			conn, err := network.GetHTTPConnection(host, timeout)
+			conn, err := network.GetHTTPConnection(host, port, timeout)
 
 			if err == nil {
 				statusCode, err = network.SendGET(conn, host, path)
@@ -53,7 +55,7 @@ func main() {
 
 		} else if u.Scheme == "https" {
 
-			conn, err := network.GetHTTPSConnection(host, timeout)
+			conn, err := network.GetHTTPSConnection(host, port, timeout)
 
 			if err == nil {
 				statusCode, err = network.SendGET(conn, host, path)
@@ -73,5 +75,7 @@ func main() {
 		} else {
 			fmt.Println("DOWN - status:", statusCode)
 		}
+
+		fmt.Println()
 	}
 }

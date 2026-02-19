@@ -6,24 +6,34 @@ import (
 	"time"
 )
 
-func GetHTTPConnection(host string, timeout time.Duration) (net.Conn, error) {
-	conn, err := net.DialTimeout("tcp", host+":80", timeout)
+func GetHTTPConnection(host, port string, timeout time.Duration) (net.Conn, error) {
+	if port == "" {
+		port = "80"
+	}
+
+	conn, err := net.DialTimeout("tcp", host+":"+port, timeout)
 	if err != nil {
 		return nil, err
 	}
+
+	conn.SetDeadline(time.Now().Add(timeout))
 
 	return conn, nil
 }
 
-func GetHTTPSConnection(host string, timeout time.Duration) (net.Conn, error) {
-	conn, err := net.DialTimeout("tcp", host+":443", timeout)
+func GetHTTPSConnection(host, port string, timeout time.Duration) (net.Conn, error) {
+	if port == "" {
+		port = "443"
+	}
+
+	conn, err := net.DialTimeout("tcp", host+":"+port, timeout)
 	if err != nil {
 		return nil, err
 	}
 
-	tlsConn := tls.Client(conn, &tls.Config{
-		ServerName: host,
-	})
+	conn.SetDeadline(time.Now().Add(timeout))
+
+	tlsConn := tls.Client(conn, &tls.Config{ServerName: host})
 
 	err = tlsConn.Handshake()
 	if err != nil {
@@ -31,5 +41,7 @@ func GetHTTPSConnection(host string, timeout time.Duration) (net.Conn, error) {
 		return nil, err
 	}
 
+	tlsConn.SetDeadline(time.Now().Add(timeout))
+	
 	return tlsConn, nil
 }
