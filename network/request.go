@@ -28,14 +28,15 @@ func SendGET(conn net.Conn, host, path string) (int, error) {
 		return 0, fmt.Errorf("failed to read response: %w", err)
 	}
 
-	parts := strings.Split(statusLine, " ")
+	statusLine = strings.TrimSpace(statusLine)
+	parts := strings.Fields(statusLine)
 	if len(parts) < 2 {
 		return 0, fmt.Errorf("invalid HTTP response: %s", statusLine)
 	}
 
 	code, err := strconv.Atoi(parts[1])
 	if err != nil {
-		return 0, fmt.Errorf("failed to parse status code: %w", err)
+		return 0, fmt.Errorf("failed to parse status code '%s': %w", parts[1], err)
 	}
 
 	return code, nil
