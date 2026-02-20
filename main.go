@@ -178,7 +178,7 @@ func main() {
 		case sig := <-quit:
 			fmt.Printf("\n\nReceived %v signal. Shutting down gracefully...\n", sig)
 			fmt.Println("Health checker stopped.")
-			os.Exit(0)
+			return
 		}
 	}
 } 
